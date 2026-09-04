@@ -190,20 +190,54 @@
   .also{margin-top:56px;border-top:1px solid var(--rule);padding-top:24px;}
 
   footer{border-top:1px solid var(--rule);padding:30px 0 60px;color:var(--ink-soft);font-size:13px;}
+
+  /* ---------- Lock screen ---------- */
+  .lock{
+    position:fixed;inset:0;z-index:100;background:var(--paper);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .lock-card{max-width:320px;width:100%;text-align:center;}
+  .lock-card h2{font-size:26px;margin-bottom:8px;}
+  .lock-card p{color:var(--ink-soft);font-size:14px;margin-bottom:26px;}
+  .pin-row{display:flex;gap:8px;justify-content:center;margin-bottom:14px;}
+  .pin-row input{
+    width:44px;height:54px;text-align:center;font-size:22px;
+    font-family:'Fraunces',serif;border:1px solid var(--ink);background:var(--paper);color:var(--ink);
+  }
+  .lock-error{color:var(--hot);font-size:13px;min-height:18px;margin-bottom:10px;}
+  .lock-card button{
+    padding:12px 24px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);
+    cursor:pointer;font-size:14px;width:100%;
+  }
 </style>
 </head>
 <body>
 
-<div class="topbar">
+<div class="lock" id="lock">
+  <div class="lock-card">
+    <h2>The Coffee Ledger</h2>
+    <p>Enter the PIN to open the ledger.</p>
+    <div class="pin-row">
+      <input type="password" inputmode="numeric" maxlength="1" class="pin-digit">
+      <input type="password" inputmode="numeric" maxlength="1" class="pin-digit">
+      <input type="password" inputmode="numeric" maxlength="1" class="pin-digit">
+      <input type="password" inputmode="numeric" maxlength="1" class="pin-digit">
+    </div>
+    <div class="lock-error" id="lock-error"></div>
+    <button id="lock-submit">Unlock</button>
+  </div>
+</div>
+
+<div class="topbar" style="display:none" id="topbar-wrap">
   <div class="topbar-inner">
     <button class="brandmark" onclick="go({view:'home'})">The Coffee Ledger <span class="no" id="crumb-count"></span></button>
     <div class="crumbs" id="crumbs"></div>
   </div>
 </div>
 
-<div class="wrap" id="app"></div>
+<div class="wrap" id="app" style="display:none"></div>
 
-<footer>
+<footer style="display:none" id="footer-wrap">
   <div class="wrap">An open, growing ledger of coffee recipes — classics and chain-inspired copycats, entered one drink at a time. Recipes are approximations built from common technique, not official formulas.</div>
 </footer>
 
@@ -578,7 +612,51 @@ function renderSearch(q){
   `;
 }
 
-render();
+const PIN = '1276';
+
+function showApp(){
+  document.getElementById('lock').style.display = 'none';
+  document.getElementById('topbar-wrap').style.display = '';
+  document.getElementById('app').style.display = '';
+  document.getElementById('footer-wrap').style.display = '';
+  render();
+}
+
+(function setupLock(){
+  const digits = Array.from(document.querySelectorAll('.pin-digit'));
+  const errorEl = document.getElementById('lock-error');
+
+  if(sessionStorage.getItem('cl_unlocked') === 'yes'){
+    showApp();
+    return;
+  }
+
+  digits[0].focus();
+  digits.forEach((d,i)=>{
+    d.addEventListener('input', ()=>{
+      d.value = d.value.replace(/[^0-9]/g,'');
+      if(d.value && digits[i+1]) digits[i+1].focus();
+    });
+    d.addEventListener('keydown', e=>{
+      if(e.key==='Backspace' && !d.value && digits[i-1]) digits[i-1].focus();
+      if(e.key==='Enter') attempt();
+    });
+  });
+
+  document.getElementById('lock-submit').addEventListener('click', attempt);
+
+  function attempt(){
+    const entered = digits.map(d=>d.value).join('');
+    if(entered === PIN){
+      sessionStorage.setItem('cl_unlocked','yes');
+      showApp();
+    } else {
+      errorEl.textContent = 'Incorrect PIN — try again.';
+      digits.forEach(d=>d.value='');
+      digits[0].focus();
+    }
+  }
+})();
 </script>
 </body>
 </html>
