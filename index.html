@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Coffee Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#241712;
+    --ink-soft:#4a3a30;
+    --paper:#F6EFE4;
+    --paper-dim:#EFE6D5;
+    --parchment:#EAE0CE;
+    --rule:#D9CBB2;
+    --brass:#9C6B30;
+    --hot:#8B3A2F;
+    --hot-soft:#F3E1DC;
+    --cold:#2F4858;
+    --cold-soft:#DEE7EB;
+    --spec:#3F5B3D;
+    --spec-soft:#E1E8DD;
+    --max:920px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
+  ::selection{background:var(--brass);color:var(--paper);}
+  :focus-visible{outline:2px solid var(--brass);outline-offset:3px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 28px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:var(--paper);
+    border-bottom:1px solid var(--rule);
+  }
+  .topbar-inner{
+    max-width:var(--max);margin:0 auto;padding:16px 28px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  }
+  .brandmark{
+    font-family:'Fraunces',serif;font-size:20px;font-weight:600;
+    cursor:pointer;border:none;background:none;color:var(--ink);padding:0;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .brandmark .no{color:var(--brass);font-size:13px;font-weight:500;}
+  .crumbs{font-size:13px;color:var(--ink-soft);}
+  .crumbs button{background:none;border:none;color:var(--brass);cursor:pointer;padding:0;font-size:13px;text-decoration:underline;text-underline-offset:3px;}
+
+  /* ---------- Hero / landing ---------- */
+  .hero{padding:64px 0 40px;}
+  .hero .kicker{font-size:15px;color:var(--brass);margin-bottom:14px;}
+  .hero h1{font-size:clamp(40px,7vw,64px);line-height:1.02;max-width:11ch;}
+  .hero p.lede{
+    font-size:18px;line-height:1.55;color:var(--ink-soft);
+    max-width:52ch;margin-top:20px;
+  }
+  .count-line{margin-top:10px;font-size:14px;color:var(--ink-soft);}
+  .count-line strong{color:var(--ink);}
+
+  .search-row{margin-top:32px;display:flex;gap:0;max-width:520px;}
+  .search-row input{
+    flex:1;padding:14px 16px;font-size:15px;font-family:'Inter',sans-serif;
+    border:1px solid var(--ink);border-right:none;background:var(--paper);color:var(--ink);
+  }
+  .search-row input::placeholder{color:#8a7a6a;}
+  .search-row button{
+    padding:14px 20px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);
+    cursor:pointer;font-size:14px;
+  }
+
+  /* ---------- Category bands ---------- */
+  .bands{margin-top:52px;border-top:1px solid var(--rule);}
+  .band{
+    display:block;width:100%;text-align:left;border:none;cursor:pointer;
+    border-bottom:1px solid var(--rule);
+    background:var(--paper);
+    padding:0;
+  }
+  .band-inner{
+    max-width:var(--max);margin:0 auto;padding:26px 28px;
+    display:flex;align-items:center;gap:22px;
+  }
+  .band-tab{
+    width:6px;align-self:stretch;border-radius:0;flex-shrink:0;
+  }
+  .band[data-c="hot"] .band-tab{background:var(--hot);}
+  .band[data-c="cold"] .band-tab{background:var(--cold);}
+  .band[data-c="specialty"] .band-tab{background:var(--spec);}
+  .band-name{font-family:'Fraunces',serif;font-size:30px;font-weight:500;min-width:210px;}
+  .band-desc{color:var(--ink-soft);font-size:15px;flex:1;line-height:1.5;}
+  .band-meta{font-size:13px;color:var(--brass);white-space:nowrap;text-align:right;}
+  .band:hover .band-name{color:var(--brass);}
+  @media (max-width:640px){
+    .band-inner{flex-wrap:wrap;}
+    .band-name{min-width:0;width:100%;}
+    .band-meta{width:100%;text-align:left;}
+  }
+
+  /* ---------- Category / list view ---------- */
+  .cat-head{padding:44px 0 8px;}
+  .cat-eyebrow{font-size:14px;color:var(--brass);margin-bottom:8px;}
+  .cat-head h2{font-size:clamp(32px,5vw,46px);}
+  .cat-head p{color:var(--ink-soft);margin-top:12px;max-width:60ch;line-height:1.55;}
+
+  .rows{margin-top:24px;border-top:1px solid var(--rule);}
+  .row-entry{
+    display:flex;align-items:baseline;gap:20px;
+    padding:20px 0;border-bottom:1px solid var(--rule);
+    cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;
+    width:100%;text-align:left;
+  }
+  .row-no{font-family:'Fraunces',serif;font-size:15px;color:var(--brass);min-width:34px;}
+  .row-body{flex:1;}
+  .row-name{font-family:'Fraunces',serif;font-size:21px;font-weight:500;}
+  .row-tag{color:var(--ink-soft);font-size:14px;margin-top:4px;}
+  .row-origin{font-size:12px;color:var(--ink-soft);white-space:nowrap;border:1px solid var(--rule);padding:5px 10px;}
+  .row-entry:hover .row-name{color:var(--brass);}
+  @media (max-width:640px){
+    .row-entry{flex-wrap:wrap;}
+    .row-origin{margin-left:54px;}
+  }
+
+  .empty{padding:40px 0;color:var(--ink-soft);}
+
+  /* ---------- Detail view ---------- */
+  .detail{padding:44px 0 80px;}
+  .detail-top{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+  .detail-no{font-family:'Fraunces',serif;font-size:16px;color:var(--brass);}
+  .origin-badge{
+    font-size:12px;padding:5px 10px;border:1px solid currentColor;
+  }
+  .origin-badge.hot{color:var(--hot);}
+  .origin-badge.cold{color:var(--cold);}
+  .origin-badge.specialty{color:var(--spec);}
+  .detail h2{font-size:clamp(34px,5vw,52px);max-width:16ch;}
+  .detail .tagline{font-size:18px;color:var(--ink-soft);margin-top:14px;max-width:56ch;line-height:1.5;}
+
+  .detail-grid{
+    margin-top:44px;display:grid;grid-template-columns:1fr 1.5fr;gap:48px;
+    border-top:1px solid var(--rule);padding-top:36px;
+  }
+  @media (max-width:720px){.detail-grid{grid-template-columns:1fr;gap:32px;}}
+
+  .block-label{font-size:13px;color:var(--brass);margin-bottom:16px;}
+  .ing-list{list-style:none;margin:0;padding:0;}
+  .ing-list li{
+    padding:11px 0;border-bottom:1px dashed var(--rule);
+    font-size:15px;display:flex;gap:10px;
+  }
+  .ing-list li::before{content:"–";color:var(--brass);}
+
+  .steps{list-style:none;margin:0;padding:0;counter-reset:step;}
+  .steps li{
+    counter-increment:step;
+    padding:0 0 22px 40px;position:relative;font-size:15.5px;line-height:1.6;
+  }
+  .steps li::before{
+    content:counter(step);
+    position:absolute;left:0;top:0;
+    font-family:'Fraunces',serif;color:var(--brass);font-size:16px;
+  }
+
+  .note{
+    margin-top:26px;padding:16px 18px;background:var(--parchment);
+    font-size:14.5px;line-height:1.55;color:var(--ink-soft);border-left:2px solid var(--brass);
+  }
+
+  .also{margin-top:56px;border-top:1px solid var(--rule);padding-top:24px;}
+
+  footer{border-top:1px solid var(--rule);padding:30px 0 60px;color:var(--ink-soft);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <button class="brandmark" onclick="go({view:'home'})">The Coffee Ledger <span class="no" id="crumb-count"></span></button>
+    <div class="crumbs" id="crumbs"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<footer>
+  <div class="wrap">An open, growing ledger of coffee recipes — classics and chain-inspired copycats, entered one drink at a time. Recipes are approximations built from common technique, not official formulas.</div>
+</footer>
+
+<script>
+/* ============ DATA ============ */
+const DRINKS = [
+// ---- HOT ----
+{c:'hot',n:'Espresso',o:'Classic · Italy',t:'The foundation every other drink is built on.',
+ ing:['18g finely ground espresso roast','36g water (2:1 yield)','Water at 93–96°C'],
+ steps:['Dose 18g of freshly ground coffee into the portafilter and distribute evenly.','Tamp firmly and level, then lock into the group head right away.','Extract for 25–30 seconds, targeting 36g of espresso in the cup.','Drink within a minute or two, while the crema is still intact.'],
+ note:'A shot that pulls faster than 20s or slower than 35s is usually a grind problem, not a recipe problem.'},
+
+{c:'hot',n:'Doppio',o:'Classic · Italy',t:'Two shots, one cup, no dilution.',
+ ing:['18–20g finely ground espresso roast','40g water (double yield)'],
+ steps:['Dose and tamp as for a standard double basket.','Pull directly into one demitasse rather than two separate cups.','Stop the shot around 40g of liquid, roughly 25–28 seconds.'],
+ note:'Different from an Americano — no added water, just concentrated espresso.'},
+
+{c:'hot',n:'Americano',o:'Classic · United States',t:'Espresso stretched into something closer to drip coffee.',
+ ing:['1 double shot espresso (60ml)','120–180ml hot water'],
+ steps:['Pull a double shot of espresso directly into a warmed cup.','Heat water separately to just off the boil.','Pour the hot water over the espresso, not the other way around, to protect the crema.','Adjust the water ratio to taste, from strong (1:2) to light (1:3).']},
+
+{c:'hot',n:'Cappuccino',o:'Classic · Italy',t:'Equal parts espresso, milk, and foam.',
+ ing:['1 double shot espresso (60ml)','60ml steamed milk','60ml thick milk foam'],
+ steps:['Pull a double shot into a 150–180ml cup.','Steam milk to about 55–60°C, building a thick microfoam.','Pour the steamed milk in, holding back the foam with a spoon.','Spoon the reserved foam on top to finish a roughly 1:1:1 ratio.']},
+
+{c:'hot',n:'Flat White',o:'Classic · Australia/NZ',t:'More coffee, less foam, smaller cup than a latte.',
+ ing:['1 double ristretto shot (40ml)','150ml steamed milk, velvety microfoam'],
+ steps:['Pull a ristretto-style double for a sweeter, more concentrated base.','Steam milk to a thin, glossy microfoam rather than a thick cap.','Pour in a steady stream from height, finishing close to the surface.','Serve in a small 150–170ml cup — the point is a higher coffee-to-milk ratio than a latte.']},
+
+{c:'hot',n:'Latte',o:'Classic · Italy',t:'Mostly milk, gently folded around a double shot.',
+ ing:['1 double shot espresso (60ml)','220–250ml steamed milk','thin layer of foam'],
+ steps:['Pull a double shot into a 240–280ml cup.','Steam milk until silky, aiming for a thin foam layer rather than a thick cap.','Pour the milk in a steady stream, folding it into the crema.','Finish with a light foam layer, about 1cm.']},
+
+{c:'hot',n:'Café Mocha',o:'Classic · Italy/US',t:'Latte and hot chocolate, meeting in the middle.',
+ ing:['1 double shot espresso','20g dark chocolate sauce or cocoa syrup','180ml steamed milk','whipped cream, optional'],
+ steps:['Stir chocolate sauce into the fresh espresso until fully dissolved.','Steam the milk to a silky texture.','Pour the milk into the espresso-chocolate base.','Top with whipped cream and a dusting of cocoa, if using.']},
+
+{c:'hot',n:'Espresso Macchiato',o:'Classic · Italy',t:'Espresso, "marked" with a spoonful of foam.',
+ ing:['1 double shot espresso','1 tbsp milk foam'],
+ steps:['Pull a double shot into a small cup.','Spoon a small dollop of milk foam directly on top — just enough to mark it.','Serve immediately, unstirred.']},
+
+{c:'hot',n:'Cortado',o:'Classic · Spain',t:'Equal parts espresso and milk, no foam to speak of.',
+ ing:['1 double shot espresso','60ml steamed milk, lightly textured'],
+ steps:['Pull a double shot into a small glass.','Steam milk briefly, keeping foam to a minimum.','Add milk in equal part to the espresso to cut acidity without masking the coffee.']},
+
+{c:'hot',n:'Café au Lait',o:'Classic · France',t:'Brewed coffee and hot milk, poured together.',
+ ing:['180ml strong drip or French press coffee','180ml steamed or scalded milk'],
+ steps:['Brew coffee strong, closer to a French press ratio.','Heat milk until steaming, just under a boil.','Pour the coffee and milk together at the same time, in equal parts, into a wide cup.']},
+
+{c:'hot',n:'Turkish Coffee',o:'Classic · Turkey',t:'Unfiltered, foam-capped, and brewed in a cezve.',
+ ing:['1 heaping tsp powder-fine coffee','60–70ml cold water','sugar to taste'],
+ steps:['Combine coffee, water, and sugar (if using) in a cezve.','Heat slowly over low heat, stirring once to dissolve.','Watch for foam to rise as it nears a boil, then pull it off the heat.','Return briefly to heat once or twice more to build foam without letting it boil over.','Pour into a small cup foam-first, and let the grounds settle before drinking.']},
+
+{c:'hot',n:'Café Cubano',o:'Classic · Cuba',t:'Sugar whipped into the first drops for a caramel foam.',
+ ing:['1 double shot espresso, dark roast','1 tbsp sugar'],
+ steps:['As the espresso begins to pull, catch the first few drops in a cup with the sugar.','Whisk the sugar and first drops vigorously until light and caramel-colored — this is the espuma.','Pour in the rest of the shot and fold gently to keep some espuma on top.']},
+
+{c:'hot',n:'Irish Coffee',o:'Classic · Ireland',t:'Coffee, whiskey, and a cold cream float.',
+ ing:['120ml hot brewed coffee','45ml Irish whiskey','1 tbsp brown sugar','30ml lightly whipped cream'],
+ steps:['Warm a glass, then dissolve brown sugar into the hot coffee.','Stir in the whiskey.','Gently float lightly whipped cream over the back of a spoon so it sits on top.','Do not stir after adding the cream — drink through the cold layer.']},
+
+{c:'hot',n:'Cà Phê Trứng (Egg Coffee)',o:'Classic · Vietnam',t:'Whipped egg yolk and condensed milk over strong drip coffee.',
+ ing:['1 egg yolk','2 tbsp sweetened condensed milk','30ml strong phin-brewed coffee'],
+ steps:['Whisk the egg yolk and condensed milk together for several minutes until pale, thick, and mousse-like.','Brew coffee strong using a phin filter.','Pour the coffee into a cup, then spoon the whipped egg cream on top.','Serve in a warm water bath to keep it hot without cooking the foam.']},
+
+{c:'hot',n:'Hot Caramel Macchiato',o:'Chain-inspired · Starbucks-style',t:'Vanilla milk marked with espresso and caramel.',
+ ing:['2 pumps vanilla syrup (or 1 tbsp)','180ml steamed milk','1 double shot espresso','caramel sauce, for drizzle'],
+ steps:['Stir vanilla syrup into steamed milk at the bottom of the cup.','Pour the milk in, then hold back the foam and spoon it on top.','Pour the espresso over the foam so it sits on top, marking it.','Finish with a crosshatch of caramel sauce.']},
+
+// ---- COLD ----
+{c:'cold',n:'Iced Americano',o:'Classic',t:'Espresso poured straight over ice.',
+ ing:['1 double shot espresso','ice','100–150ml cold water'],
+ steps:['Fill a glass with ice.','Pour the espresso over the ice immediately after pulling.','Top with cold water to taste.']},
+
+{c:'cold',n:'Iced Latte',o:'Classic',t:'The everyday latte, chilled down.',
+ ing:['1 double shot espresso','ice','200ml cold milk'],
+ steps:['Fill a glass with ice.','Pour the milk over the ice.','Pour the espresso on top and stir once to combine.']},
+
+{c:'cold',n:'Cold Brew',o:'Classic',t:'Slow-steeped, smooth, and low in acidity.',
+ ing:['100g coarsely ground coffee','800ml cold or room-temp filtered water'],
+ steps:['Combine grounds and water in a jar or French press, stirring to saturate.','Steep at room temperature or in the fridge for 12–18 hours.','Strain through a fine mesh filter or cheesecloth, filtering again for clarity if needed.','Dilute the concentrate with water or milk to taste before serving over ice.']},
+
+{c:'cold',n:'Iced Mocha',o:'Classic',t:'Chocolate latte over ice.',
+ ing:['1 double shot espresso','20g chocolate syrup','150ml cold milk','ice'],
+ steps:['Stir chocolate syrup into the hot espresso to dissolve fully.','Fill a glass with ice and pour in the milk.','Pour the chocolate-espresso mixture over the milk and stir.']},
+
+{c:'cold',n:'Cà Phê Sữa Đá',o:'Classic · Vietnam',t:'Phin-dripped coffee brewed straight onto condensed milk.',
+ ing:['2 tbsp dark-roast coffee, coarse-fine grind','2 tbsp sweetened condensed milk','ice'],
+ steps:['Spoon condensed milk into a glass.','Set a phin filter on top and brew directly over the milk with hot water, letting it drip slowly.','Stir the coffee and condensed milk together once brewing finishes.','Pour over a full glass of ice.']},
+
+{c:'cold',n:'Japanese Iced Coffee',o:'Classic · Japan',t:'Flash-brewed hot, straight onto ice, for brighter aromatics.',
+ ing:['30g medium-fine ground coffee','250ml hot water, just off the boil','ice, to fill to 500ml total'],
+ steps:['Fill the server with ice up to the halfway mark before brewing.','Pour hot water over the grounds in a slow spiral, pour-over style.','Let the hot coffee drip directly onto the ice, flash-chilling as it brews.','Serve immediately over fresh ice — this locks in aromatics that slow cold brew loses.']},
+
+{c:'cold',n:'Nitro Cold Brew',o:'Classic',t:'Cold brew charged with nitrogen for a cascading, creamy pour.',
+ ing:['Cold brew concentrate, diluted to drinking strength','nitrogen charge (nitro tap or N2 whipped cream charger)'],
+ steps:['Prepare cold brew slightly stronger than normal — nitro mutes sweetness.','Chill thoroughly; nitro only foams properly when very cold.','Charge through a nitro tap or a whipped cream dispenser with an N2 charger.','Pour with no ice, straight down the middle of the glass, for the cascade and creamy head.']},
+
+{c:'cold',n:'Greek Frappé',o:'Classic · Greece',t:'Shaken instant coffee, foamed and topped with water.',
+ ing:['2 tsp instant coffee','2 tsp sugar, to taste','30ml cold water','ice','cold water or milk to top up'],
+ steps:['Combine instant coffee, sugar, and cold water in a shaker.','Shake vigorously (or use a frother) for about 30 seconds until thick foam forms.','Pour over ice in a tall glass.','Top with cold water, or milk for a "frappé me gala" version.']},
+
+{c:'cold',n:'Caramel Frappuccino',o:'Chain-inspired · Starbucks-style',t:'Blended, slushy, and caramel-lined.',
+ ing:['1 double shot espresso, cooled','200ml milk','3 tbsp caramel sauce, plus more for drizzle','2 cups ice','whipped cream'],
+ steps:['Blend espresso, milk, caramel sauce, and ice until smooth and slushy.','Line a glass with caramel drizzle before pouring.','Pour the blended drink in.','Top with whipped cream and another caramel drizzle.']},
+
+{c:'cold',n:'Iced Shaken Espresso',o:'Chain-inspired · Starbucks-style',t:'Hard-shaken espresso for a frothy, fast chill.',
+ ing:['1 double shot espresso','1 tbsp simple syrup','ice','30ml milk or cream, optional'],
+ steps:['Combine hot espresso and simple syrup in a shaker tin.','Fill with ice and shake hard for about 10 seconds to aerate and chill.','Strain into a glass filled with fresh ice.','Splash in milk or cream if using.']},
+
+{c:'cold',n:'Oliang (Thai Iced Coffee)',o:'Classic · Thailand',t:'Coffee-chicory blend, sweetened and marbled with evaporated milk.',
+ ing:['3 tbsp coffee-chicory blend, coarsely ground','250ml hot water','2 tbsp sweetened condensed milk','evaporated milk, to top','ice'],
+ steps:['Brew the blend strong using a cloth filter or drip bag.','Stir condensed milk into the hot coffee until dissolved.','Pour over a glass packed with ice.','Top with a pour of evaporated milk, left unstirred for a marbled look.']},
+
+{c:'cold',n:'Cold Foam Cold Brew',o:'Classic',t:'Diluted cold brew under a pillow of whipped milk.',
+ ing:['Cold brew concentrate, diluted','150ml half-and-half or milk, cold','1 tbsp simple syrup','ice'],
+ steps:['Pour diluted cold brew over a glass of ice.','Whip the milk and simple syrup with a handheld frother until thick and pourable, about 45 seconds.','Spoon the cold foam on top so it floats.','Drink through the foam layer rather than stirring it in.']},
+
+{c:'cold',n:'Iced White Mocha',o:'Classic',t:'White chocolate in place of dark for a sweeter mocha.',
+ ing:['1 double shot espresso','20g white chocolate sauce','150ml cold milk','ice'],
+ steps:['Stir white chocolate sauce into the hot espresso until smooth.','Fill a glass with ice and add the milk.','Pour the espresso mixture over the milk and stir.']},
+
+{c:'cold',n:'Frozen Mocha Frappé',o:'Classic',t:'Blended chocolate-espresso, finished with cream.',
+ ing:['1 double shot espresso, cooled','20g chocolate syrup','200ml milk','2 cups ice','whipped cream'],
+ steps:['Blend espresso, chocolate syrup, milk, and ice until smooth.','Pour into a tall glass.','Top with whipped cream and a chocolate drizzle.']},
+
+{c:'cold',n:'Iced Honey Lavender Latte',o:'Modern',t:'Floral syrup and honey against cold espresso and milk.',
+ ing:['1 double shot espresso','1 tbsp honey','1 tbsp lavender simple syrup','150ml cold milk (oat milk works well)','ice'],
+ steps:['Stir honey into the hot espresso until fully dissolved.','Fill a glass with ice and pour in the milk.','Add lavender syrup, then pour the espresso over the top.','Stir gently to combine and marble the layers.']},
+
+// ---- SPECIALTY ----
+{c:'specialty',n:'Affogato',o:'Classic · Italy',t:'A shot of hot espresso poured straight over gelato.',
+ ing:['1 scoop vanilla gelato or ice cream','1 double shot hot espresso'],
+ steps:['Place a scoop of gelato in a small glass or cup.','Pull a double shot of espresso directly over it just before serving.','Serve immediately, spoon and all, before it melts.']},
+
+{c:'specialty',n:'Café con Hielo',o:'Classic · Spain',t:'Hot espresso poured over ice at the table, drunk fast.',
+ ing:['1 double shot espresso, hot','ice','sugar to taste'],
+ steps:['Fill a glass with ice.','Stir sugar into the hot espresso if using.','Pour the espresso directly over the ice and drink right away, before it dilutes too far.']},
+
+{c:'specialty',n:'Dalgona Coffee',o:'Modern · South Korea',t:'Whipped instant coffee, piled onto cold milk.',
+ ing:['2 tbsp instant coffee','2 tbsp sugar','2 tbsp hot water','250ml milk, hot or cold','ice, optional'],
+ steps:['Whisk instant coffee, sugar, and hot water together vigorously for 3–5 minutes until thick, pale, and whipped like meringue.','Fill a glass with milk, over ice if serving cold.','Spoon the whipped coffee on top.','Stir together just before drinking.']},
+
+{c:'specialty',n:'Café Bombón',o:'Classic · Spain',t:'Espresso poured over condensed milk in visible layers.',
+ ing:['1 double shot espresso','30ml sweetened condensed milk','steamed milk or ice, depending on style'],
+ steps:['Pour condensed milk into the bottom of a clear glass.','Slowly pour the espresso on top so it sits in a visible layer rather than mixing.','Add steamed milk for a hot version, or pour over ice for a cold one.','Stir just before drinking to blend the layers.']},
+
+{c:'specialty',n:'Butter Coffee',o:'Modern',t:'Coffee blended with butter and MCT oil until frothy.',
+ ing:['250ml hot brewed coffee','1 tbsp unsalted grass-fed butter','1 tbsp MCT or coconut oil'],
+ steps:['Brew coffee strong using your preferred method.','Add butter and MCT oil directly to the hot coffee.','Blend on high for 20–30 seconds until emulsified and frothy on top — stirring alone will let it separate.','Serve immediately in a mug.']},
+
+{c:'specialty',n:'Café de Olla',o:'Classic · Mexico',t:'Coffee simmered with cinnamon and unrefined cane sugar.',
+ ing:['3 tbsp coarsely ground dark roast coffee','500ml water','1 cinnamon stick','40g piloncillo or dark brown sugar','1 clove, optional'],
+ steps:['Simmer water with cinnamon, piloncillo, and clove for about 10 minutes to infuse, traditionally in a clay pot.','Add the coffee grounds and simmer gently for 3–5 minutes without letting it boil hard.','Remove from heat and let the grounds settle for a couple of minutes.','Strain into cups and serve hot.']},
+
+{c:'specialty',n:'Einspänner',o:'Classic · Austria',t:'Strong coffee under a thick, unstirred layer of cream.',
+ ing:['1 double shot espresso or strong coffee','hot water to fill, optional','60ml lightly sweetened whipped cream'],
+ steps:['Brew espresso or strong coffee into a glass.','Top with hot water if a milder version is preferred.','Spoon a generous layer of softly whipped cream on top, left unstirred.','Serve with a small spoon, sipping the coffee up through the cream.']},
+
+{c:'specialty',n:'Ube Latte',o:'Modern · Philippines-inspired',t:'Purple yam jam swirled through espresso and milk.',
+ ing:['1–2 tbsp ube (purple yam) jam','1 tbsp condensed milk or simple syrup','1 double shot espresso or 60ml strong coffee','180ml steamed milk'],
+ steps:['Whisk ube jam and condensed milk into a smooth paste at the bottom of the cup.','Pour in steamed milk, stirring to combine and color it purple.','Pour espresso over the top, or swirl it through.','Adjust the ube-to-milk ratio for color and sweetness.']},
+
+{c:'specialty',n:'Honey Cinnamon Latte',o:'Modern',t:'A warmly spiced latte sweetened with honey instead of syrup.',
+ ing:['1 double shot espresso','1 tbsp honey','1/4 tsp ground cinnamon','200ml steamed milk'],
+ steps:['Stir honey and cinnamon into the fresh espresso until dissolved.','Steam milk to a silky microfoam.','Pour the milk into the espresso, holding back the foam slightly.','Dust with a little extra cinnamon on top.']},
+
+{c:'specialty',n:'Pumpkin Spice Latte',o:'Chain-inspired · Starbucks-style',t:'Pumpkin and warm spice folded into a latte, hot or iced.',
+ ing:['1 double shot espresso','2 tbsp pumpkin puree','1 tbsp brown sugar','1/2 tsp pumpkin pie spice','180ml steamed milk','whipped cream'],
+ steps:['Whisk pumpkin puree, brown sugar, and pumpkin pie spice into the hot espresso until smooth.','Steam milk and pour it in, blending with the pumpkin base.','Top with whipped cream and a pinch of pumpkin pie spice.','For iced, cool the base and pour over ice instead of steaming.']},
+
+{c:'specialty',n:'Maple Pecan Latte',o:'Modern',t:'Maple and toasted pecan syrup against steamed milk.',
+ ing:['1 double shot espresso','1 tbsp maple syrup','1 tbsp pecan or brown butter syrup','180ml steamed milk'],
+ steps:['Stir maple syrup and pecan syrup into the hot espresso.','Steam milk to a silky texture and pour it in.','Finish with a light dusting of cinnamon or crushed pecans, if desired.']},
+
+{c:'specialty',n:'Lavender Latte',o:'Modern',t:'Floral syrup, gently folded into steamed milk and espresso.',
+ ing:['1 double shot espresso','1 tbsp lavender simple syrup','180ml steamed milk'],
+ steps:['Stir lavender syrup into the hot espresso.','Steam milk and pour it in, holding back the foam.','Finish with a thin foam layer and a few dried lavender buds, if available.']},
+
+{c:'specialty',n:'Brown Sugar Oat Milk Shaken Espresso',o:'Chain-inspired · Starbucks-style',t:'Cinnamon-brown sugar espresso, shaken hard and layered with oat milk.',
+ ing:['1 double shot espresso','1 tbsp brown sugar syrup','1/4 tsp cinnamon','ice','150ml oat milk'],
+ steps:['Combine hot espresso, brown sugar syrup, and cinnamon in a shaker.','Add ice and shake hard for about 10 seconds to chill and aerate.','Strain into a glass over fresh ice.','Top with oat milk, poured slowly for a layered look.']},
+
+{c:'specialty',n:'Café Touba',o:'Classic · Senegal',t:'Coffee spiced with Guinea pepper, brewed strong and sweet.',
+ ing:['3 tbsp coarsely ground coffee','1 tsp ground Guinea pepper (Selim pepper)','500ml water','sugar, to taste'],
+ steps:['If grinding whole spice fresh, toast it briefly with the coffee to release aroma.','Brew the spiced grounds with hot water, French-press or cloth-filter style.','Sweeten generously — this is traditionally quite sweet.','Strain and serve hot in small cups.']},
+
+{c:'specialty',n:'Kopi Susu',o:'Classic · Indonesia',t:'Steeped coffee over condensed milk, hot or iced.',
+ ing:['3 tbsp dark roast coffee, fine grind','250ml hot water','3 tbsp sweetened condensed milk'],
+ steps:['Steep the grounds directly in hot water for 4–5 minutes, or brew through a cloth sock filter.','Spoon condensed milk into a glass.','Pour the brewed coffee over the condensed milk.','Stir to combine; serve hot, or over ice as Kopi Susu Es.']},
+];
+DRINKS.forEach((d,i)=>d.id=i+1);
+
+const CAT_META = {
+  hot:{label:'Hot', desc:'Espresso and brewed drinks served warm — the everyday lineup.', accent:'var(--hot)'},
+  cold:{label:'Cold', desc:'Iced, shaken, and cold-brewed — built for heat or just built for ice.', accent:'var(--cold)'},
+  specialty:{label:'Specialty', desc:'Regional traditions, dessert-leaning drinks, and modern one-offs.', accent:'var(--spec)'},
+};
+
+/* ============ STATE + ROUTING ============ */
+let state = {view:'home'};
+function go(next){ state = next; window.scrollTo({top:0,behavior:'instant'}); render(); }
+
+document.getElementById('crumb-count').textContent = '№ ' + DRINKS.length;
+
+function render(){
+  const app = document.getElementById('app');
+  const crumbs = document.getElementById('crumbs');
+  crumbs.innerHTML = '';
+  if(state.view==='category'){
+    const b = document.createElement('button');
+    b.textContent = 'Ledger';
+    b.onclick = ()=>go({view:'home'});
+    crumbs.append(b);
+  } else if(state.view==='detail'){
+    const d = DRINKS.find(x=>x.id===state.id);
+    const b = document.createElement('button');
+    b.textContent = CAT_META[d.c].label;
+    b.onclick = ()=>go({view:'category',cat:d.c});
+    crumbs.append(b);
+  } else if(state.view==='search'){
+    const b = document.createElement('button');
+    b.textContent = 'Ledger';
+    b.onclick = ()=>go({view:'home'});
+    crumbs.append(b);
+  }
+
+  if(state.view==='home') app.innerHTML = renderHome();
+  else if(state.view==='category') app.innerHTML = renderCategory(state.cat);
+  else if(state.view==='detail') app.innerHTML = renderDetail(state.id);
+  else if(state.view==='search') app.innerHTML = renderSearch(state.q);
+
+  // wire up interactive bits after paint
+  const searchInput = document.getElementById('search-input');
+  if(searchInput){
+    searchInput.addEventListener('keydown', e=>{
+      if(e.key==='Enter') go({view:'search', q:searchInput.value});
+    });
+    document.getElementById('search-btn')?.addEventListener('click', ()=>go({view:'search', q:searchInput.value}));
+  }
+  document.querySelectorAll('[data-goto-cat]').forEach(el=>{
+    el.addEventListener('click', ()=>go({view:'category',cat:el.dataset.gotoCat}));
+  });
+  document.querySelectorAll('[data-goto-id]').forEach(el=>{
+    el.addEventListener('click', ()=>go({view:'detail',id:Number(el.dataset.gotoId)}));
+  });
+}
+
+function renderHome(){
+  const bands = Object.keys(CAT_META).map(cat=>{
+    const list = DRINKS.filter(d=>d.c===cat);
+    const sample = list.slice(0,3).map(d=>d.n).join(', ');
+    return `<button class="band" data-c="${cat}" data-goto-cat="${cat}">
+      <div class="band-inner">
+        <div class="band-tab"></div>
+        <div class="band-name">${CAT_META[cat].label}</div>
+        <div class="band-desc">${CAT_META[cat].desc}<br><span style="opacity:.75">${sample}…</span></div>
+        <div class="band-meta">${list.length} entries →</div>
+      </div>
+    </button>`;
+  }).join('');
+
+  return `
+  <div class="hero">
+    <div class="kicker">A working database of coffee recipes</div>
+    <h1>The Coffee Ledger</h1>
+    <p class="lede">Classic drinks from cafés around the world, sitting alongside chain-inspired copycats — each one entered as a full recipe, not just a name.</p>
+    <div class="count-line"><strong>${DRINKS.length}</strong> entries on record, organized across three shelves. New entries can be added indefinitely.</div>
+    <div class="search-row">
+      <input id="search-input" type="text" placeholder="Search by drink, origin, or ingredient…">
+      <button id="search-btn">Search</button>
+    </div>
+  </div>
+  <div class="bands">${bands}</div>
+  `;
+}
+
+function renderCategory(cat){
+  const meta = CAT_META[cat];
+  const list = DRINKS.filter(d=>d.c===cat);
+  const rows = list.map(d=>`
+    <button class="row-entry" data-goto-id="${d.id}">
+      <div class="row-no">№${String(d.id).padStart(2,'0')}</div>
+      <div class="row-body">
+        <div class="row-name">${d.n}</div>
+        <div class="row-tag">${d.t}</div>
+      </div>
+      <div class="row-origin">${d.o}</div>
+    </button>
+  `).join('');
+
+  return `
+  <div class="cat-head">
+    <div class="cat-eyebrow">Shelf · ${list.length} entries</div>
+    <h2>${meta.label} drinks</h2>
+    <p>${meta.desc}</p>
+  </div>
+  <div class="rows">${rows}</div>
+  `;
+}
+
+function renderDetail(id){
+  const d = DRINKS.find(x=>x.id===id);
+  const ing = d.ing.map(i=>`<li>${i}</li>`).join('');
+  const steps = d.steps.map(s=>`<li>${s}</li>`).join('');
+  const others = DRINKS.filter(x=>x.c===d.c && x.id!==d.id).slice(0,4);
+  const othersRows = others.map(o=>`
+    <button class="row-entry" data-goto-id="${o.id}">
+      <div class="row-no">№${String(o.id).padStart(2,'0')}</div>
+      <div class="row-body"><div class="row-name" style="font-size:18px">${o.n}</div></div>
+    </button>`).join('');
+
+  return `
+  <div class="detail">
+    <div class="detail-top">
+      <div class="detail-no">Entry №${String(d.id).padStart(2,'0')}</div>
+      <div class="origin-badge ${d.c}">${d.o}</div>
+    </div>
+    <h2>${d.n}</h2>
+    <p class="tagline">${d.t}</p>
+
+    <div class="detail-grid">
+      <div>
+        <div class="block-label">Ingredients</div>
+        <ul class="ing-list">${ing}</ul>
+      </div>
+      <div>
+        <div class="block-label">Method</div>
+        <ol class="steps">${steps}</ol>
+        ${d.note ? `<div class="note">${d.note}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="also">
+      <div class="block-label">Also on the ${CAT_META[d.c].label.toLowerCase()} shelf</div>
+      <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">${othersRows}</div>
+    </div>
+  </div>
+  `;
+}
+
+function renderSearch(q){
+  const query = (q||'').trim().toLowerCase();
+  const results = query ? DRINKS.filter(d=>
+    d.n.toLowerCase().includes(query) ||
+    d.o.toLowerCase().includes(query) ||
+    d.t.toLowerCase().includes(query) ||
+    d.ing.some(i=>i.toLowerCase().includes(query))
+  ) : [];
+
+  const rows = results.map(d=>`
+    <button class="row-entry" data-goto-id="${d.id}">
+      <div class="row-no">№${String(d.id).padStart(2,'0')}</div>
+      <div class="row-body">
+        <div class="row-name">${d.n}</div>
+        <div class="row-tag">${d.t}</div>
+      </div>
+      <div class="row-origin">${d.o}</div>
+    </button>
+  `).join('');
+
+  return `
+  <div class="cat-head">
+    <div class="cat-eyebrow">Search</div>
+    <h2>"${q||''}"</h2>
+    <div class="search-row" style="margin-top:22px">
+      <input id="search-input" type="text" value="${(q||'').replace(/"/g,'&quot;')}" placeholder="Search by drink, origin, or ingredient…">
+      <button id="search-btn">Search</button>
+    </div>
+  </div>
+  ${results.length ? `<div class="rows">${rows}</div>` : `<div class="empty">No entries match "${q}". Try a drink name, a country, or an ingredient like "cinnamon" or "condensed milk".</div>`}
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
