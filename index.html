@@ -209,6 +209,48 @@
     padding:12px 24px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);
     cursor:pointer;font-size:14px;width:100%;
   }
+
+  /* ---------- Add recipe ---------- */
+  .add-btn{
+    background:none;border:1px solid var(--ink);color:var(--ink);
+    padding:8px 14px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .add-btn:hover{background:var(--ink);color:var(--paper);}
+  .form-grid{margin-top:28px;max-width:640px;}
+  .field{margin-bottom:22px;}
+  .field label{display:block;font-size:13px;color:var(--brass);margin-bottom:8px;}
+  .field .hint{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+  .field input[type=text],
+  .field select,
+  .field textarea{
+    width:100%;padding:12px 14px;font-size:15px;font-family:'Inter',sans-serif;
+    border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:88px;line-height:1.5;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink);}
+  .field-row{display:flex;gap:16px;}
+  .field-row .field{flex:1;}
+  .form-actions{display:flex;gap:12px;margin-top:8px;align-items:center;}
+  .form-actions button{
+    padding:13px 22px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);
+    cursor:pointer;font-size:14px;
+  }
+  .form-note{font-size:13px;color:var(--ink-soft);margin-top:-6px;margin-bottom:26px;line-height:1.5;max-width:56ch;}
+  .saved-banner{
+    margin-top:20px;padding:14px 16px;background:var(--spec-soft);border-left:2px solid var(--spec);
+    font-size:14px;line-height:1.5;display:none;
+  }
+  .saved-banner.show{display:block;}
+  .snippet-box{margin-top:36px;border-top:1px solid var(--rule);padding-top:24px;}
+  .snippet-box textarea{
+    width:100%;min-height:160px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12.5px;line-height:1.6;padding:14px;border:1px solid var(--rule);background:var(--paper-dim);color:var(--ink);
+  }
+  .snippet-actions{margin-top:10px;display:flex;gap:10px;align-items:center;}
+  .snippet-actions button{
+    padding:9px 16px;background:none;border:1px solid var(--ink);color:var(--ink);cursor:pointer;font-size:13px;
+  }
+  .copy-msg{font-size:13px;color:var(--brass);}
 </style>
 </head>
 <body>
@@ -231,7 +273,10 @@
 <div class="topbar" style="display:none" id="topbar-wrap">
   <div class="topbar-inner">
     <button class="brandmark" onclick="go({view:'home'})">The Coffee Ledger <span class="no" id="crumb-count"></span></button>
-    <div class="crumbs" id="crumbs"></div>
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div class="crumbs" id="crumbs"></div>
+      <button class="add-btn" onclick="go({view:'add'})">+ Add recipe</button>
+    </div>
   </div>
 </div>
 
@@ -431,6 +476,16 @@ const DRINKS = [
 ];
 DRINKS.forEach((d,i)=>d.id=i+1);
 
+// Recipes added through the on-page form persist in this browser via localStorage
+// and get merged into the ledger on load, continuing the entry numbering.
+(function loadCustomDrinks(){
+  try{
+    const stored = JSON.parse(localStorage.getItem('cl_custom_drinks') || '[]');
+    let nextId = DRINKS.length + 1;
+    stored.forEach(d=>{ d.id = nextId++; d.custom = true; DRINKS.push(d); });
+  }catch(e){ /* ignore malformed local data */ }
+})();
+
 const CAT_META = {
   hot:{label:'Hot', desc:'Espresso and brewed drinks served warm — the everyday lineup.', accent:'var(--hot)'},
   cold:{label:'Cold', desc:'Iced, shaken, and cold-brewed — built for heat or just built for ice.', accent:'var(--cold)'},
@@ -463,12 +518,18 @@ function render(){
     b.textContent = 'Ledger';
     b.onclick = ()=>go({view:'home'});
     crumbs.append(b);
+  } else if(state.view==='add'){
+    const b = document.createElement('button');
+    b.textContent = 'Ledger';
+    b.onclick = ()=>go({view:'home'});
+    crumbs.append(b);
   }
 
   if(state.view==='home') app.innerHTML = renderHome();
   else if(state.view==='category') app.innerHTML = renderCategory(state.cat);
   else if(state.view==='detail') app.innerHTML = renderDetail(state.id);
   else if(state.view==='search') app.innerHTML = renderSearch(state.q);
+  else if(state.view==='add') app.innerHTML = renderAdd();
 
   // wire up interactive bits after paint
   const searchInput = document.getElementById('search-input');
@@ -484,6 +545,8 @@ function render(){
   document.querySelectorAll('[data-goto-id]').forEach(el=>{
     el.addEventListener('click', ()=>go({view:'detail',id:Number(el.dataset.gotoId)}));
   });
+
+  if(state.view==='add') wireAddForm();
 }
 
 function renderHome(){
@@ -610,6 +673,133 @@ function renderSearch(q){
   </div>
   ${results.length ? `<div class="rows">${rows}</div>` : `<div class="empty">No entries match "${q}". Try a drink name, a country, or an ingredient like "cinnamon" or "condensed milk".</div>`}
   `;
+}
+
+function renderAdd(){
+  return `
+  <div class="cat-head">
+    <div class="cat-eyebrow">New entry</div>
+    <h2>Add a recipe</h2>
+    <p class="form-note">Fill this in and save — it'll show up on its shelf right away and stick around in this browser. To make it permanent (and visible to anyone else who opens the site), copy the generated code at the bottom into the <code>DRINKS</code> array in <code>index.html</code> and push it.</p>
+  </div>
+
+  <form class="form-grid" id="add-form">
+    <div class="field-row">
+      <div class="field">
+        <label for="f-name">Drink name</label>
+        <input type="text" id="f-name" required placeholder="e.g. Hazelnut Cortado">
+      </div>
+      <div class="field">
+        <label for="f-cat">Shelf</label>
+        <select id="f-cat">
+          <option value="hot">Hot</option>
+          <option value="cold">Cold</option>
+          <option value="specialty">Specialty</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="f-origin">Origin tag</label>
+      <input type="text" id="f-origin" placeholder="e.g. Classic · Spain, or Chain-inspired · Starbucks-style">
+    </div>
+
+    <div class="field">
+      <label for="f-tagline">Tagline</label>
+      <input type="text" id="f-tagline" placeholder="One short line describing the drink">
+    </div>
+
+    <div class="field">
+      <label for="f-ing">Ingredients</label>
+      <textarea id="f-ing" placeholder="One ingredient per line, e.g.&#10;1 double shot espresso&#10;150ml steamed milk"></textarea>
+      <div class="hint">One ingredient per line — each line becomes its own list item.</div>
+    </div>
+
+    <div class="field">
+      <label for="f-steps">Method</label>
+      <textarea id="f-steps" placeholder="One step per line, e.g.&#10;Pull a double shot into a small glass.&#10;Steam milk to a silky microfoam."></textarea>
+      <div class="hint">One step per line — each line becomes a numbered step, in order.</div>
+    </div>
+
+    <div class="field">
+      <label for="f-note">Note (optional)</label>
+      <textarea id="f-note" style="min-height:60px" placeholder="A tip, variation, or serving note"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit">Save recipe</button>
+    </div>
+    <div class="saved-banner" id="saved-banner"></div>
+  </form>
+
+  <div class="snippet-box" id="snippet-box" style="display:none">
+    <div class="block-label">Code to make it permanent</div>
+    <textarea id="snippet-text" readonly></textarea>
+    <div class="snippet-actions">
+      <button id="copy-snippet" type="button">Copy code</button>
+      <span class="copy-msg" id="copy-msg"></span>
+    </div>
+  </div>
+  `;
+}
+
+function wireAddForm(){
+  const form = document.getElementById('add-form');
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const name = document.getElementById('f-name').value.trim();
+    if(!name) return;
+
+    const drink = {
+      c: document.getElementById('f-cat').value,
+      n: name,
+      o: document.getElementById('f-origin').value.trim() || 'Personal recipe',
+      t: document.getElementById('f-tagline').value.trim() || '',
+      ing: document.getElementById('f-ing').value.split('\n').map(s=>s.trim()).filter(Boolean),
+      steps: document.getElementById('f-steps').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+    const note = document.getElementById('f-note').value.trim();
+    if(note) drink.note = note;
+
+    // save to this browser so it survives a refresh
+    let stored = [];
+    try{ stored = JSON.parse(localStorage.getItem('cl_custom_drinks') || '[]'); }catch(e){}
+    stored.push(drink);
+    localStorage.setItem('cl_custom_drinks', JSON.stringify(stored));
+
+    drink.id = DRINKS.length + 1;
+    drink.custom = true;
+    DRINKS.push(drink);
+    document.getElementById('crumb-count').textContent = '№ ' + DRINKS.length;
+
+    const banner = document.getElementById('saved-banner');
+    banner.textContent = `Saved to the ${CAT_META[drink.c].label} shelf in this browser. Copy the code below to make it permanent for everyone.`;
+    banner.classList.add('show');
+
+    const box = document.getElementById('snippet-box');
+    box.style.display = '';
+    document.getElementById('snippet-text').value = buildSnippet(drink);
+
+    form.reset();
+  });
+
+  document.getElementById('copy-snippet')?.addEventListener('click', ()=>{
+    const ta = document.getElementById('snippet-text');
+    ta.select();
+    navigator.clipboard?.writeText(ta.value).then(()=>{
+      document.getElementById('copy-msg').textContent = 'Copied.';
+      setTimeout(()=>document.getElementById('copy-msg').textContent='', 2000);
+    });
+  });
+}
+
+function buildSnippet(d){
+  const jsStr = s => "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'";
+  const arr = a => '[' + a.map(jsStr).join(',') + ']';
+  let out = `{c:${jsStr(d.c)},n:${jsStr(d.n)},o:${jsStr(d.o)},t:${jsStr(d.t)},\n ing:${arr(d.ing)},\n steps:${arr(d.steps)}`;
+  if(d.note) out += `,\n note:${jsStr(d.note)}`;
+  out += '},';
+  return out;
 }
 
 const PIN = '1276';
